@@ -8,6 +8,7 @@ class Player:
     """
     A player of the minetest server.
     """
+
     def __init__(self, minetest: miney.Minetest, name):
         """
         Initialize the player object.
@@ -17,10 +18,14 @@ class Player:
         """
         self.mt = minetest
         self.name = name
-        
+
         # get user data: password hash, last login, privileges
-        data = self.mt.lua.run("return minetest.get_auth_handler().get_auth('{}')".format(self.name))
-        if data and all(k in data for k in ("password", "last_login", "privileges")):  # if we have all keys
+        data = self.mt.lua.run(
+            "return minetest.get_auth_handler().get_auth('{}')".format(self.name)
+        )
+        if data and all(
+            k in data for k in ("password", "last_login", "privileges")
+        ):  # if we have all keys
             self.password = data["password"]
             self.last_login = data["last_login"]
             self.privileges = data["privileges"]
@@ -57,7 +62,10 @@ class Player:
         # TODO: Better check without provoke a lua error
         try:
             if self.name == self.mt.lua.run(
-                    "return minetest.get_player_by_name('{}'):get_player_name()".format(self.name)):
+                "return minetest.get_player_by_name('{}'):get_player_name()".format(
+                    self.name
+                )
+            ):
                 return True
         except miney.LuaError:
             return False
@@ -70,7 +78,9 @@ class Player:
         :return: A dict with x,y,z keys: {"x": 0, "y":1, "z":2}
         """
         try:
-            return self.mt.lua.run("return minetest.get_player_by_name('{}'):get_pos()".format(self.name))
+            return self.mt.lua.run(
+                "return minetest.get_player_by_name('{}'):get_pos()".format(self.name)
+            )
         except miney.LuaError:
             raise miney.PlayerOffline("The player has no position, he could be offline")
 
@@ -92,7 +102,33 @@ class Player:
             )
         else:
             raise miney.NoValidPosition(
-                "A valid position need x,y,z values in an dict ({\"x\": 12, \"y\": 70, \"z\": 12}).")
+                'A valid position need x,y,z values in an dict ({"x": 12, "y": 70, "z": 12}).'
+            )
+
+    @property
+    def teleport(self, values: dict):
+        """
+        Teleport player to coordinates
+
+        :return: A dict with x,y,z keys: {"x": 0, "y":1, "z":2}
+        """
+        if all(k in values for k in ("x", "y", "z")):  # if we have all keys
+            self.mt.lua.run(
+                "return minetest.teleport_player(player:'{}', {{x = {}, y = {}, z = {}}}".format(
+                    self.name,
+                    values["x"],
+                    values["y"],
+                    values["z"],
+                )
+            )
+        else:
+            raise miney.NoValidPosition(
+                'A valid position need x,y,z values in an dict ({"x": 12, "y": 70, "z": 12}).'
+            )
+
+        return self.mt.lua.run(
+            "return minetest.(player:get_player_name('{}'), {{x = {}, y = {}, z = {}}})"
+        )
 
     @property
     def speed(self) -> int:
@@ -102,12 +138,18 @@ class Player:
         :return: Float
         """
         return self.mt.lua.run(
-            "return minetest.get_player_by_name('{}'):get_physics_override()".format(self.name))["speed"]
+            "return minetest.get_player_by_name('{}'):get_physics_override()".format(
+                self.name
+            )
+        )["speed"]
 
     @speed.setter
     def speed(self, value: int):
         self.mt.lua.run(
-            "return minetest.get_player_by_name('{}'):set_physics_override({{speed = {}}})".format(self.name, value))
+            "return minetest.get_player_by_name('{}'):set_physics_override({{speed = {}}})".format(
+                self.name, value
+            )
+        )
 
     @property
     def jump(self):
@@ -117,12 +159,18 @@ class Player:
         :return: Float
         """
         return self.mt.lua.run(
-            "return minetest.get_player_by_name('{}'):get_physics_override()".format(self.name))["jump"]
+            "return minetest.get_player_by_name('{}'):get_physics_override()".format(
+                self.name
+            )
+        )["jump"]
 
     @jump.setter
     def jump(self, value):
         self.mt.lua.run(
-            "return minetest.get_player_by_name('{}'):set_physics_override({{jump = {}}})".format(self.name, value))
+            "return minetest.get_player_by_name('{}'):set_physics_override({{jump = {}}})".format(
+                self.name, value
+            )
+        )
 
     @property
     def gravity(self):
@@ -132,12 +180,18 @@ class Player:
         :return: Float
         """
         return self.mt.lua.run(
-            "return minetest.get_player_by_name('{}'):get_physics_override()".format(self.name))["gravity"]
+            "return minetest.get_player_by_name('{}'):get_physics_override()".format(
+                self.name
+            )
+        )["gravity"]
 
     @gravity.setter
     def gravity(self, value):
         self.mt.lua.run(
-            "return minetest.get_player_by_name('{}'):set_physics_override({{gravity = {}}})".format(self.name, value))
+            "return minetest.get_player_by_name('{}'):set_physics_override({{gravity = {}}})".format(
+                self.name, value
+            )
+        )
 
     @property
     def look(self) -> dict:
@@ -159,7 +213,10 @@ class Player:
     def look(self, value: dict):
         if type(value) is dict:
             if "v" in value and "h" in value:
-                if type(value["v"]) in [int, float] and type(value["h"]) in [int, float]:
+                if type(value["v"]) in [int, float] and type(value["h"]) in [
+                    int,
+                    float,
+                ]:
                     self.mt.lua.run(
                         f"""
                         local player = minetest.get_player_by_name('{self.name}')
@@ -173,7 +230,9 @@ class Player:
             else:
                 raise TypeError("There isn't the required v or h key in the dict")
         else:
-            raise TypeError("The value isn't a dict, as required. Use a dict in the form: {\"h\": 1.1, \"v\": 1.1}")
+            raise TypeError(
+                'The value isn\'t a dict, as required. Use a dict in the form: {"h": 1.1, "v": 1.1}'
+            )
 
     @property
     def look_vertical(self):
@@ -183,11 +242,19 @@ class Player:
 
         :return: Pitch in radians
         """
-        return self.mt.lua.run("return minetest.get_player_by_name('{}'):get_look_vertical()".format(self.name))
+        return self.mt.lua.run(
+            "return minetest.get_player_by_name('{}'):get_look_vertical()".format(
+                self.name
+            )
+        )
 
     @look_vertical.setter
     def look_vertical(self, value):
-        self.mt.lua.run("return minetest.get_player_by_name('{}'):set_look_vertical({})".format(self.name, value))
+        self.mt.lua.run(
+            "return minetest.get_player_by_name('{}'):set_look_vertical({})".format(
+                self.name, value
+            )
+        )
 
     @property
     def look_horizontal(self):
@@ -196,11 +263,19 @@ class Player:
 
         :return: Pitch in radians
         """
-        return self.mt.lua.run("return minetest.get_player_by_name('{}'):get_look_horizontal()".format(self.name))
+        return self.mt.lua.run(
+            "return minetest.get_player_by_name('{}'):get_look_horizontal()".format(
+                self.name
+            )
+        )
 
     @look_horizontal.setter
     def look_horizontal(self, value):
-        self.mt.lua.run("return minetest.get_player_by_name('{}'):set_look_horizontal({})".format(self.name, value))
+        self.mt.lua.run(
+            "return minetest.get_player_by_name('{}'):set_look_horizontal({})".format(
+                self.name, value
+            )
+        )
 
     @property
     def hp(self):
@@ -210,25 +285,31 @@ class Player:
 
         :return:
         """
-        return self.mt.lua.run(f"return minetest.get_player_by_name('{self.name}'):get_hp()")
+        return self.mt.lua.run(
+            f"return minetest.get_player_by_name('{self.name}'):get_hp()"
+        )
 
     @hp.setter
     def hp(self, value: int):
         if type(value) is int and value in range(0, 21):
             self.mt.lua.run(
-                f"return minetest.get_player_by_name('{self.name}'):set_hp({value}, {{type=\"set_hp\"}})")
+                f"return minetest.get_player_by_name('{self.name}'):set_hp({value}, {{type=\"set_hp\"}})"
+            )
         else:
             raise ValueError("HP has to be between 0 and 20.")
 
     @property
     def breath(self):
-        return self.mt.lua.run(f"return minetest.get_player_by_name('{self.name}'):get_breath()")
+        return self.mt.lua.run(
+            f"return minetest.get_player_by_name('{self.name}'):get_breath()"
+        )
 
     @breath.setter
     def breath(self, value: int):
         if type(value) is int and value in range(0, 21):
             self.mt.lua.run(
-                f"return minetest.get_player_by_name('{self.name}'):set_breath({value}, {{type=\"set_hp\"}})")
+                f"return minetest.get_player_by_name('{self.name}'):set_breath({value}, {{type=\"set_hp\"}})"
+            )
         else:
             raise ValueError("HP has to be between 0 and 20.")
 
@@ -300,13 +381,12 @@ class Player:
             privs["creative"] = {state}
             minetest.set_player_privs(\"{self.name}\", privs)
             """
-        self.mt.lua.run(
-            luastring
-        )
+        self.mt.lua.run(luastring)
 
 
 class PlayerIterable:
     """Player, implemented as iterable for easy autocomplete in the interactive shell"""
+
     def __init__(self, minetest: miney.Minetest, online_players: list = None):
         if online_players:
             self.__online_players = online_players
