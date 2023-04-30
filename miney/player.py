@@ -82,12 +82,14 @@ class Player:
                 "return minetest.get_player_by_name('{}'):get_pos()".format(self.name)
             )
         except miney.LuaError:
-            raise miney.PlayerOffline("The player has no position, he could be offline")
+            raise miney.PlayerOffline(
+                "The player has no position, they could be offline"
+            )
 
     @position.setter
-    def position(self, values: dict):
+    def teleport(self, values: dict):
         """
-        Set player position
+        Teleport player to position
         :param values:
         :return:
         """
@@ -106,29 +108,31 @@ class Player:
             )
 
     @property
-    def teleport(self, values: dict):
+    def teleport_to_p2p(self, player1: str, player2: str, values: dict):
         """
-        Teleport player to coordinates
+        Teleport player to player
 
-        :return: A dict with x,y,z keys: {"x": 0, "y":1, "z":2}
+        :param player1: str
+        :param player2: str
+        :param values: dict
+        :return:
         """
-        if all(k in values for k in ("x", "y", "z")):  # if we have all keys
+
+        player2_pos = self.position(player2)
+
+        if all(k in values for k in ("x", "y", "z")):
             self.mt.lua.run(
-                "return minetest.teleport_player(player:'{}', {{x = {}, y = {}, z = {}}}".format(
-                    self.name,
-                    values["x"],
-                    values["y"],
-                    values["z"],
+                "return minetest.get_player_by_name('{}'):set_pos({{x = {}, y = {}, z = {}}})".format(
+                    player1,
+                    player2_pos["x"],
+                    player2_pos["y"],
+                    player2_pos["z"],
                 )
             )
         else:
             raise miney.NoValidPosition(
                 'A valid position need x,y,z values in an dict ({"x": 12, "y": 70, "z": 12}).'
             )
-
-        return self.mt.lua.run(
-            "return minetest.(player:get_player_name('{}'), {{x = {}, y = {}, z = {}}})"
-        )
 
     @property
     def speed(self) -> int:
