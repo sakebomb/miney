@@ -21,8 +21,8 @@ class Inventory:
         if isinstance(self.parent, miney.Player):
             self.mt.lua.run(
                 f"minetest.get_inventory("
-                f"{{type = \"player\", name = \"{self.parent.name}\"}}"
-                f"):add_item(\"main\", ItemStack(\"{item} {amount}\"))"
+                f'{{type = "player", name = "{self.parent.name}"}}'
+                f'):add_item("main", ItemStack("{item} {amount}"))'
             )
 
     def remove(self, item: str, amount: int = 1) -> None:
@@ -35,5 +35,22 @@ class Inventory:
         """
         if isinstance(self.parent, miney.Player):
             self.mt.lua.run(
-                f"minetest.get_inventory({{type = \"player\", "
-                f"name = \"{self.parent.name}\"}}):remove_item(\"main\", ItemStack(\"{item} {amount}\"))")
+                f'minetest.get_inventory({{type = "player", '
+                f'name = "{self.parent.name}"}}):remove_item("main", ItemStack("{item} {amount}"))'
+            )
+
+    def get_main(self) -> None:
+        """
+        Get players inventory.
+
+        :return: dict
+        """
+        try:
+            if isinstance(self.parent, miney.Player):
+                return self.mt.lua.run(
+                    f'minetest.get_inventory({{type = "player", name = "{self.parent.name}"}}):get_list("main")'
+                )
+        except miney.LuaError:
+            raise miney.PlayerOffline(
+                "The player has no position, they could be offline"
+            )
